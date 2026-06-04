@@ -1,0 +1,9 @@
+Employee Onboarding Guide
+
+Welcome to the team. New employees should complete onboarding during their first week. The onboarding process helps each employee learn the company tools, communication expectations, security practices, and team workflows.
+
+New employees should complete the following first-week steps: set up their company email account, sign in to the product dashboard, join the team communication channels, review the security guidelines, complete required policy acknowledgments, schedule a meeting with their manager, and review the internal product support guide.
+
+If an employee cannot access a required tool, they should first confirm they are using their company email address. Then they should check whether they accepted the account invitation. If access still does not work, they should contact the operations team and include a screenshot of the error message.
+
+Managers should confirm that new employees know where to find help, how to report access issues, and how to ask product support questions. A successful onboarding experience should reduce confusion, prevent delays, and help the employee begin contributing with confidence.

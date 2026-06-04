@@ -1,0 +1,21 @@
+Workplace FAQ
+
+How should employees ask for technical help?
+
+Employees should first search the internal knowledge base. If the answer is not available, they should post a clear question in the correct team support channel. A good help request includes the goal, what was tried, what happened, and any relevant error message.
+
+What should a support agent do when the knowledge base does not answer a customer question?
+
+The support agent should avoid inventing an answer. The agent should explain that the issue needs additional review and escalate it through the appropriate internal process.
+
+Why do source-backed answers matter?
+
+Source-backed answers help employees understand where an answer came from. This is important because a response can sound fluent but still be incomplete, outdated, or unsupported. Sources help users decide whether they can trust the response or need to review the original material.
+
+What makes an internal assistant useful?
+
+An internal assistant is useful when it saves time, gives relevant answers, points users to supporting sources, and helps employees follow approved processes. It should not replace careful review for sensitive, account-specific, legal, financial, or security decisions.
+
+What should teams review before expanding an AI assistant?
+
+Teams should review answer quality, source usefulness, response time, user trust, and known limitations. They should also identify what content is missing from the knowledge base and what workflows still require human review.

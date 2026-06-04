@@ -1,0 +1,11 @@
+Product Support Guide
+
+The product dashboard helps customers view account activity, update profile information, and review recent transactions. Support agents should use the product dashboard guide when answering common customer questions.
+
+If a customer cannot log in, the support agent should first confirm that the customer is using the correct email address. The agent should then ask whether the customer recently reset their password. If needed, the agent can send a password reset link through the approved support tool.
+
+If the dashboard loads slowly, the support agent should ask the customer to refresh the page and confirm that the issue occurs in more than one browser. The agent should also check the internal status page for active incidents. If there is an active incident, the agent should use the approved incident response message.
+
+If a customer reports missing account activity, the support agent should confirm the date range selected in the dashboard. Some activity may take several minutes to appear. If activity is missing after the expected update window, the agent should escalate the issue to the product operations queue.
+
+Support agents should avoid guessing about account-specific details. If the knowledge base does not provide enough information, the agent should say that the issue needs additional review and escalate through the appropriate internal process.

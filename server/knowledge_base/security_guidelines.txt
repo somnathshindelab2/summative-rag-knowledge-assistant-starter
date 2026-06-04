@@ -1,0 +1,11 @@
+Security Guidelines
+
+Employees are responsible for protecting company systems, customer information, and internal documentation. Security practices apply to all teams, including engineering, support, operations, and management.
+
+Employees should use strong passwords and enable multi-factor authentication when available. Passwords should not be shared in chat messages, tickets, documents, or email. If a password may have been exposed, the employee should reset it and notify the security contact.
+
+Internal documents should be shared only through approved company systems. Employees should avoid downloading sensitive files to personal devices. Customer information should be accessed only when it is needed for an approved work task.
+
+If an employee receives a suspicious email or message, they should not click links or download attachments. They should report the message through the approved security reporting process. If the employee already clicked a suspicious link, they should disconnect from sensitive systems and notify the security contact.
+
+AI tools should not be given confidential customer data, passwords, secret keys, or private company records unless the tool and workflow have been approved for that data. When using an AI assistant, employees should verify important responses against approved source material before making decisions.

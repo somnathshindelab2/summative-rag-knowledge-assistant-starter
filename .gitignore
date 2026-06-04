@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+
+# Flask / local files
+instance/
+*.sqlite
+*.db
+chroma_db/
+
+# Node
+node_modules/
+dist/
+
+# System
+.DS_Store
