@@ -4,96 +4,118 @@ import chromadb
 import requests
 
 from config import Config
-from documents import DocumentChunk
+from documents import DocumentChunk, build_chunks, load_text_documents
 
 
 def get_chroma_client():
-    """
-    Create and return a persistent Chroma client.
-
-    TODO:
-    - Use Config.CHROMA_PATH as the local storage path.
-    - Return a chromadb.PersistentClient.
-    """
-    raise NotImplementedError("TODO: Create and return a persistent Chroma client.")
+    """Create and return a persistent Chroma client."""
+    return chromadb.PersistentClient(path=Config.CHROMA_PATH)
 
 
 def get_or_create_collection():
-    """
-    Get or create the Chroma collection for the knowledge assistant.
-
-    TODO:
-    - Use get_chroma_client().
-    - Use Config.COLLECTION_NAME as the collection name.
-    - Return the collection.
-    """
-    raise NotImplementedError("TODO: Get or create the Chroma collection.")
+    """Get or create the Chroma collection for the knowledge assistant."""
+    client = get_chroma_client()
+    return client.get_or_create_collection(name=Config.COLLECTION_NAME)
 
 
 def get_embedding(text: str) -> list[float]:
-    """
-    Create an embedding for a piece of text using the local model service.
+    """Create an embedding for a piece of text using the local model service."""
+    response = requests.post(
+        f"{Config.OLLAMA_BASE_URL.rstrip('/')}/api/embed",
+        json={"model": Config.EMBEDDING_MODEL, "input": text},
+        timeout=60,
+    )
+    response.raise_for_status()
+    payload = response.json()
+    embedding = payload.get("embedding")
 
-    TODO:
-    - Send a POST request to the Ollama embed endpoint (https://docs.ollama.com/api/embed).
-    - Use Config.OLLAMA_BASE_URL.
-    - Use Config.EMBEDDING_MODEL.
-    - Return the embedding list from the response.
+    if isinstance(embedding, list):
+        return embedding
 
-    Endpoint:
-        POST {OLLAMA_BASE_URL}/api/embed
+    result = payload.get("result")
+    if isinstance(result, list):
+        return result
 
-    Example request body:
-        {
-            "model": Config.EMBEDDING_MODEL,
-            "prompt": text
-        }
-    """
-    raise NotImplementedError("TODO: Create embeddings with the configured embedding model.")
+    embeddings = payload.get("embeddings")
+    if isinstance(embeddings, list) and embeddings:
+        first = embeddings[0]
+        if isinstance(first, list):
+            return first
+
+    return []
+
+
+def ensure_knowledge_base_loaded() -> int:
+    """Load and index the knowledge base if the collection is empty."""
+    collection = get_or_create_collection()
+    if collection.count() > 0:
+        return collection.count()
+
+    documents = load_text_documents(Config.KNOWLEDGE_BASE_PATH)
+    chunks = build_chunks(documents)
+    return seed_vector_store(chunks)
 
 
 def seed_vector_store(chunks: List[DocumentChunk]) -> int:
-    """
-    Add document chunks to the Chroma collection.
+    """Add document chunks to the Chroma collection with their metadata."""
+    if not chunks:
+        return 0
 
-    TODO:
-    - Get or create the collection.
-    - Convert each chunk into:
-        - id
-        - document text
-        - metadata with source, title, and chunk_index
-        - embedding
-    - Add or update the chunks in Chroma (recommend using collection.upsert(...) to prevent duplicating existing records).
-    - Return the number of chunks added.
+    collection = get_or_create_collection()
+    ids = [chunk.id for chunk in chunks]
+    documents = [chunk.text for chunk in chunks]
+    metadatas = [
+        {"source": chunk.source, "title": chunk.title, "chunk_index": chunk.chunk_index}
+        for chunk in chunks
+    ]
+    embeddings = [get_embedding(chunk.text) for chunk in chunks]
 
-    Keep source metadata because the frontend needs to display sources.
-    """
-    raise NotImplementedError("TODO: Seed Chroma with document chunks and metadata.")
+    collection.upsert(
+        ids=ids,
+        documents=documents,
+        metadatas=metadatas,
+        embeddings=embeddings,
+    )
+
+    return len(chunks)
 
 
 def retrieve_relevant_chunks(question: str, top_k: int | None = None) -> list[dict[str, Any]]:
-    """
-    Retrieve relevant chunks for a user question.
+    """Retrieve relevant chunks for a user question."""
+    ensure_knowledge_base_loaded()
+    collection = get_or_create_collection()
 
-    TODO:
-    - Create an embedding for the question.
-    - Query the Chroma collection.
-    - Return a list of dictionaries with:
-        - text
-        - source
-        - title
-        - chunk_index
-        - optional distance or score
+    if collection.count() == 0:
+        return []
 
-    The RAG workflow expects a list shaped like this:
+    query_embedding = get_embedding(question)
+    if not query_embedding:
+        return []
 
-        [
+    results = collection.query(
+        query_embeddings=[query_embedding],
+        n_results=top_k or Config.TOP_K,
+        include=["documents", "metadatas", "distances"],
+    )
+
+    returned_documents = results.get("documents", [[]])[0]
+    returned_metadatas = results.get("metadatas", [[]])[0]
+    returned_distances = results.get("distances", [[]])[0]
+
+    relevant_chunks = []
+
+    for index, text in enumerate(returned_documents):
+        metadata = returned_metadatas[index] if index < len(returned_metadatas) else {}
+        distance = returned_distances[index] if index < len(returned_distances) else None
+
+        relevant_chunks.append(
             {
-                "text": "Relevant source text...",
-                "source": "product_support.txt",
-                "title": "Product Support Guide",
-                "chunk_index": 0
+                "text": text,
+                "source": metadata.get("source", "unknown"),
+                "title": metadata.get("title", "Unknown Source"),
+                "chunk_index": metadata.get("chunk_index", index),
+                "distance": distance,
             }
-        ]
-    """
-    raise NotImplementedError("TODO: Retrieve relevant chunks for the user question.")
+        )
+
+    return relevant_chunks

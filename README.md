@@ -149,7 +149,7 @@ In this README, replace the placeholder section below with a short description o
 
 #### Response: Problem Definition
 
-Replace this section with 3–5 sentences that define the problem your assistant helps solve.
+This assistant helps employees query approved internal knowledge base documents such as onboarding guidance, product support information, security expectations, and workplace FAQs. It is designed to answer operational questions quickly and with source-backed context so users can trust the response. A useful answer includes a clear recommendation, references to the relevant document, and metadata showing where the supporting information was retrieved.
 
 ---
 
@@ -181,19 +181,16 @@ You do not need to build a new frontend from scratch. Use the provided frontend 
 
 #### Response: Design Notes
 
-Replace this section with a short outline or diagram showing how the parts of your application connect.
-
-Example:
-
-```text
 User browser
-→ React frontend
-→ Flask /api/ask route
-→ RAG workflow
-→ Vector database retrieval
-→ Model service
-→ Answer and sources returned to frontend
-```
+→ React frontend submits question to `/api/ask`
+→ Flask backend validates the question
+→ `rag_service.answer_question` retrieves context from Chroma
+→ `vector_store.retrieve_relevant_chunks` queries embeddings
+→ `rag_service.build_prompt` builds a grounded prompt
+→ `rag_service.call_generation_model` sends the prompt to Ollama
+→ backend returns answer, sources, and metadata to frontend
+
+The knowledge base files are stored in `server/knowledge_base`. The backend uses environment variables in `server/.env` to configure model URLs, Chroma storage, collection name, and retrieval settings.
 
 ---
 
@@ -232,13 +229,11 @@ Refine your code based on what you find.
 
 #### Response: Sample Questions and Observations
 
-Replace this section with at least three sample questions and a short note about the answer and sources returned.
-
 | Sample Question | Was the Answer Relevant? | Were Useful Sources Returned? | Notes |
 |---|---|---|---|
-|  |  |  |  |
-|  |  |  |  |
-|  |  |  |  |
+| What should employees do if they receive a suspicious email? | Pending model service | Pending model service | The backend retrieval path is implemented; full generation requires Ollama running. |
+| Why are source-backed answers important? | Pending model service | Pending model service | Source metadata is returned from retrieved chunks once the model is available. |
+| What should I do if I cannot log into the product dashboard? | Pending model service | Pending model service | Product support content is available in `product_support.txt`; answer generation is blocked by local service availability. |
 
 ---
 
@@ -464,60 +459,25 @@ You may make small edits to the source files if allowed or instructed to by your
 
 ## RAG Workflow Description
 
-Replace this section with a short explanation of your completed RAG workflow.
-
-Your explanation should include:
-
-- How the app receives a question
-- How the app retrieves relevant chunks
-- How the prompt is built
-- How the model service is called
-- How the answer and sources are returned
-
-Suggested format:
-
-```text
-The frontend sends the user's question to the Flask /api/ask route.
-The backend sends the question to the RAG service.
-The RAG service retrieves relevant chunks from the vector database.
-The retrieved chunks are combined with the user's question in a prompt.
-The prompt is sent to the model service.
-The backend returns the generated answer and supporting sources to the frontend.
-```
+The frontend sends the user's question to the Flask `/api/ask` route. The backend validates the request and forwards the question to `server/rag_service.py`. The RAG service retrieves relevant document chunks from the Chroma vector database using `server/vector_store.py`. The retrieved chunks are combined into a prompt that asks the model to answer only from the provided context. The prompt is sent to the local Ollama generation service. The backend returns the generated answer along with supporting source metadata and excerpt information to the frontend.
 
 ---
 
 ## Sample Questions
 
-Try at least three sample questions after your implementation is complete.
-
-You may use these sample questions or write your own:
-
-1. What should I do if I cannot log into the product dashboard?
-2. Why are source-backed answers important?
-3. What should employees do if they receive a suspicious email?
-4. What should a support agent do if the knowledge base does not answer a customer question?
-5. What should a new employee complete during the first week?
-
-Record your observations in the table below.
+The following sample questions were prepared for manual verification. Full model response validation is pending because the local Ollama service was not available during this review.
 
 | Sample Question | Was the Answer Relevant? | Were Useful Sources Returned? | Notes |
 |---|---|---|---|
-|  |  |  |  |
-|  |  |  |  |
-|  |  |  |  |
-
----
+| What should employees do if they receive a suspicious email? | Pending model service | Pending model service | The backend retrieval path is implemented; full generation requires Ollama running. |
+| Why are source-backed answers important? | Pending model service | Pending model service | Source metadata is returned from retrieved chunks once the model is available. |
+| What should I do if I cannot log into the product dashboard? | Pending model service | Pending model service | Product support content is available in `product_support.txt`; answer generation is blocked by local service availability. |
 
 ## Known Limitations or Future Improvements
 
-Replace this section with notes after completing your project.
-
-Examples:
-
-- Improve chunking for longer documents.
-- Add clearer source display in the frontend.
-- Save chat history in a local database.
+- The app requires a local Ollama model service to be installed and running at `OLLAMA_BASE_URL` for embeddings and generation.
+- The current manual verification is limited by the unavailable local model service; once Ollama is running, the prompt generation and source-backed answer flow can be validated end to end.
+- Future improvements could include better chunking for longer documents, richer source attribution in the frontend, and caching or seeding the vector store ahead of time.
 - Add user feedback for helpful or unhelpful answers.
 - Improve prompt instructions for unsupported questions.
 - Expand the knowledge base with additional approved documents.

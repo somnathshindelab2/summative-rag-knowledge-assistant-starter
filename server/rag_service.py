@@ -7,24 +7,31 @@ from vector_store import retrieve_relevant_chunks
 
 
 def answer_question(question: str) -> dict[str, Any]:
-    """
-    Run the RAG workflow for a user question.
-
-    This function should:
-    1. Retrieve relevant chunks.
-    2. Build a prompt from the question and retrieved context.
-    3. Send the prompt to the model service.
-    4. Return the generated answer and supporting sources.
-    """
-    chunks = retrieve_relevant_chunks(question, top_k=Config.TOP_K)
+    """Run the RAG workflow for a user question."""
+    try:
+        chunks = retrieve_relevant_chunks(question, top_k=Config.TOP_K)
+    except Exception as exc:
+        return {
+            "answer": (
+                "I could not retrieve enough context from the knowledge base to answer that "
+                "question because the retrieval service is unavailable."
+            ),
+            "sources": [],
+            "metadata": {"error": str(exc)},
+        }
 
     if not chunks:
         return {
             "answer": (
-                "I could not find enough relevant information in the provided "
-                "knowledge base to answer that question."
+                "I could not find enough relevant information in the provided knowledge base "
+                "to answer that question."
             ),
             "sources": [],
+            "metadata": {
+                "model": Config.GENERATION_MODEL,
+                "retrieved_chunks": 0,
+                "embedding_model": Config.EMBEDDING_MODEL,
+            },
         }
 
     prompt = build_prompt(question, chunks)
@@ -33,15 +40,16 @@ def answer_question(question: str) -> dict[str, Any]:
     return {
         "answer": answer,
         "sources": format_sources(chunks),
+        "metadata": {
+            "model": Config.GENERATION_MODEL,
+            "retrieved_chunks": len(chunks),
+            "embedding_model": Config.EMBEDDING_MODEL,
+        },
     }
 
 
 def build_prompt(question: str, chunks: list[dict[str, Any]]) -> str:
-    """
-    Build a prompt that asks the model to answer using only retrieved context.
-
-    This helper is provided. You may refine it if needed.
-    """
+    """Build a prompt that asks the model to answer using only retrieved context."""
     context_blocks = []
 
     for index, chunk in enumerate(chunks, start=1):
@@ -49,9 +57,7 @@ def build_prompt(question: str, chunks: list[dict[str, Any]]) -> str:
         source = chunk.get("source", "unknown")
         text = chunk.get("text", "")
 
-        context_blocks.append(
-            f"[Source {index}: {title} | {source}]\n{text}"
-        )
+        context_blocks.append(f"[Source {index}: {title} | {source}]\n{text}")
 
     context = "\n\n".join(context_blocks)
 
@@ -75,39 +81,53 @@ Answer:
 
 
 def call_generation_model(prompt: str) -> str:
-    """
-    Send the final prompt to the configured generation model.
+    """Send the final prompt to the configured generation model."""
+    payload = {
+        "model": Config.GENERATION_MODEL,
+        "prompt": prompt,
+        "stream": False,
+        "options": {"temperature": Config.TEMPERATURE},
+    }
 
-    TODO:
-    - Send a POST request to the Ollama generation endpoint.
-    - Use Config.OLLAMA_BASE_URL.
-    - Use Config.GENERATION_MODEL.
-    - Use Config.TEMPERATURE.
-    - Request a non-streaming response.
-    - Return the generated response text.
+    try:
+        response = requests.post(
+            f"{Config.OLLAMA_BASE_URL.rstrip('/')}/api/generate",
+            json=payload,
+            timeout=120,
+        )
+        response.raise_for_status()
+        data = response.json()
 
-    Endpoint:
-        POST {OLLAMA_BASE_URL}/api/generate
+        if isinstance(data.get("response"), str):
+            return data["response"].strip()
 
-    Example request body:
-        {
-            "model": Config.GENERATION_MODEL,
-            "prompt": prompt,
-            "stream": False,
-            "options": {
-                "temperature": Config.TEMPERATURE
-            }
-        }
-    """
-    raise NotImplementedError("TODO: Call the configured generation model.")
+        if isinstance(data.get("output"), str):
+            return data["output"].strip()
+
+        results = data.get("results")
+        if isinstance(results, list) and results:
+            first = results[0]
+            if isinstance(first, dict):
+                if isinstance(first.get("content"), str):
+                    return first["content"].strip()
+                if isinstance(first.get("response"), str):
+                    return first["response"].strip()
+            if isinstance(first, str):
+                return first.strip()
+
+        if isinstance(data.get("text"), str):
+            return data["text"].strip()
+
+        return "I could not generate a response."
+    except requests.RequestException:
+        return (
+            "I could not reach the local model service. Please confirm that Ollama is running "
+            "and that the configured model is available."
+        )
 
 
 def format_sources(chunks: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """
-    Format retrieved chunks for the frontend.
-
-    This helper is provided. You may adjust the excerpt length if needed.
-    """
+    """Format retrieved chunks for the frontend."""
     sources = []
 
     for chunk in chunks:
@@ -120,6 +140,10 @@ def format_sources(chunks: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "source": chunk.get("source", "unknown"),
                 "chunk_index": chunk.get("chunk_index"),
                 "excerpt": excerpt,
+                "content": excerpt,
+                "metadata": {
+                    "path": f"knowledge_base/{chunk.get('source', 'unknown')}",
+                },
             }
         )
 
